@@ -2,7 +2,7 @@ pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "./WStep.sol";
-import "./RLPReader/RLPReader.sol";
+import "../RLPReader/RLPReader.sol";
 
 contract WFStorage is LibWStep {
    using RLPReader for RLPReader.RLPItem;

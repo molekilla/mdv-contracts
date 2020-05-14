@@ -1,9 +1,10 @@
+// const assert = require("assert");
 const Web3 = require('web3');
 const web3 = new Web3();
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
+const EthCrypto = require('eth-crypto');
 const WFactoryHelper = require('../wfactory-helper');
-
 
 const recetaFn = ({ description, patient, doctor,
 pharmacy, amount, tax }) => {
@@ -38,6 +39,7 @@ contract('WTemplate - RecetaModel', (accounts) => {
   let approvalsContract;
   let approvalExtensionId;
   let eventRegistry;
+  let WFactoryContract = artifacts.require('WFactory');
   let ExtensionEventRegistry = artifacts.require('ExtensionEventRegistry');
   let Approvals = artifacts.require('Approvals');
   let TestDocumentModelContract = artifacts.require('RecetaModel');
@@ -62,15 +64,15 @@ contract('WTemplate - RecetaModel', (accounts) => {
   // Steps
   wf.createStep({
     currentActor: wf.getActor('DR'),
-    current: wf.getState('NONE'),
-    next: wf.getState('PRESCRIPTION_SENT'),
-    mappingType: 0,
+    current: wf.getState('NONE'), // none
+    next: wf.getState('PRESCRIPTION_SENT'), // created
+    mappingType: 0, // init
   });
   wf.createStep({
     currentActor: wf.getActor('PATIENT'),
-    current: wf.getState('PRESCRIPTION_SENT'),
-    next: wf.getState('RX_REQUEST'),
-    mappingType: 2,
+    current: wf.getState('PRESCRIPTION_SENT'), // created
+    next: wf.getState('RX_REQUEST'), // accepted
+    mappingType: 2, // status
     stepValidations: [wf.getState('PRESCRIPTION_SENT')],
   });
   wf.createStep({
@@ -87,6 +89,7 @@ contract('WTemplate - RecetaModel', (accounts) => {
     current: wf.getState('RX_REQUEST'),
     next: wf.getState('RX_REJECT'),
     mappingType: 2,
+    // forkId: wf.getState('MULTI_SIGNERS'),
     stepValidations: [wf.getState('RX_REQUEST')],
     // recipientValidations: [...accounts],
   });
@@ -95,6 +98,7 @@ contract('WTemplate - RecetaModel', (accounts) => {
     current: wf.getState('RX_ACCEPT'),
     next: wf.getState('PATIENT_PAYMENT_SENT'),
     mappingType: 2,
+    // forkId: wf.getState('MULTI_SIGNERS'),
     stepValidations: [wf.getState('RX_ACCEPT')],
     // recipientValidations: [...accounts],
   });
@@ -103,6 +107,7 @@ contract('WTemplate - RecetaModel', (accounts) => {
     current: wf.getState('PATIENT_PAYMENT_SENT'),
     next: wf.getState('PAYMENT_RCV'),
     mappingType: 2,
+    // forkId: wf.getState('MULTI_SIGNERS'),
     stepValidations: [wf.getState('PATIENT_PAYMENT_SENT')],
     // recipientValidations: [...accounts],
   });
@@ -111,6 +116,7 @@ contract('WTemplate - RecetaModel', (accounts) => {
     current: wf.getState('PAYMENT_RCV'),
     next: wf.getState('COMPLETED'),
     mappingType: 2,
+    // forkId: wf.getState('MULTI_SIGNERS'),
     stepValidations: [wf.getState('PAYMENT_RCV')],
     // recipientValidations: [...accounts],
   });
@@ -166,8 +172,13 @@ contract('WTemplate - RecetaModel', (accounts) => {
 
     describe('create wtemplate', () => {
       it('should generate workflow template', async () => {
-        template = await WTemplateContract.new(modelContract.address);
-        templAddress = template.address;
+        factoryContract = await WFactoryContract.new();
+        const tx = await factoryContract.payWorkflowTemplate(modelContract.address, {
+          value: 0.002*1e18
+        });
+        templAddress = tx.logs[0].args[0];
+        console.log(`templ: ${templAddress}`)
+        template = await WTemplateContract.at(templAddress);
         await template.createWF(
           wf.createWFPayload(
             wf.getSteps(), [

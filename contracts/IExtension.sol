@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 
 abstract contract IExtension { 
-    function canExec(uint256 id, address) public virtual returns (bool);
+    function canExec(uint256 id, address a) public virtual returns (bool);
     
     function executeExtension( 
         uint256 documentId,

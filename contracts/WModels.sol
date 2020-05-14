@@ -1,7 +1,7 @@
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
-import "./RLPReader/RLPReader.sol";
+import "../RLPReader/RLPReader.sol";
 
 contract WModels {
     using RLPReader for RLPReader.RLPItem;
